@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="refresh" content="0; url=/" />
+  </head>
+  <body>
+    <p>Redirecting...</p>
+    <script>
+      // For client-side routers (like React Router)
+      var l = window.location;
+      var path = l.pathname.replace(/^\//, '');
+      if (path && path !== 'index.html') {
+        window.location.replace('/?' + path + l.search + l.hash);
+      }
+    </script>
+  </body>
+</html> 
