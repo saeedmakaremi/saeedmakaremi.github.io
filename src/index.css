@@ -1,0 +1,143 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply text-secondary-900 bg-white dark:bg-secondary-900 dark:text-secondary-50;
+    font-feature-settings: "ss01", "ss02", "cv01", "cv02";
+  }
+
+  ::selection {
+    @apply bg-primary-100 text-primary-900 dark:bg-primary-900 dark:text-primary-100;
+  }
+}
+
+@layer components {
+  .nav-link {
+    @apply text-secondary-700 dark:text-secondary-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-150 px-2 py-1 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-400;
+    font-size: 1rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+  }
+  .nav-link.active {
+    @apply text-primary-600 dark:text-primary-400 font-semibold;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+  .btn-primary {
+    @apply bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 dark:bg-primary-500 dark:hover:bg-primary-600;
+  }
+  .btn-secondary {
+    @apply bg-secondary-100 text-secondary-900 hover:bg-secondary-200 focus:ring-secondary-500 dark:bg-secondary-800 dark:text-secondary-100 dark:hover:bg-secondary-700;
+  }
+  .btn-outline {
+    @apply border border-secondary-300 text-secondary-700 hover:bg-secondary-50 focus:ring-secondary-500 dark:border-secondary-700 dark:text-secondary-300 dark:hover:bg-secondary-800;
+  }
+  .section-title {
+    @apply font-display text-3xl font-bold mb-6 text-secondary-900 dark:text-secondary-50 animate-fade-in;
+  }
+  .card {
+    @apply bg-white dark:bg-secondary-800 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 border border-secondary-100 dark:border-secondary-700;
+  }
+  .input {
+    @apply block w-full rounded-lg border-secondary-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-100;
+  }
+  .label {
+    @apply block text-sm font-medium text-secondary-700 dark:text-secondary-300 mb-1;
+  }
+}
+
+/* Minimal header tweaks */
+nav {
+  box-shadow: none !important;
+}
+
+/* Mobile menu bottom sheet style */
+.mobile-menu-bg {
+  background: rgba(255,255,255,0.97);
+  @apply dark:bg-secondary-900/95;
+  border-radius: 1.25rem 1.25rem 0 0;
+  box-shadow: 0 -2px 24px 0 rgba(0,0,0,0.08);
+}
+
+@media (max-width: 767px) {
+  .mobile-menu-bg {
+    padding-bottom: 2.5rem;
+    min-height: 60vh;
+  }
+  .nav-link {
+    font-size: 1.15rem;
+    padding: 1rem 1.25rem;
+    margin-bottom: 0.25rem;
+    border-radius: 0.75rem;
+    width: 100%;
+    text-align: left;
+  }
+}
+
+/* Modern gradient backgrounds */
+.hero-gradient {
+  background: linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%);
+}
+
+.subtle-gradient {
+  background: linear-gradient(to right, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.5) 100%);
+}
+
+/* Glass effect */
+.glass {
+  @apply bg-white bg-opacity-70 backdrop-blur-lg dark:bg-secondary-900 dark:bg-opacity-70;
+}
+
+/* Modern scrollbar */
+@media (min-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-secondary-100 dark:bg-secondary-800;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-secondary-300 dark:bg-secondary-700 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-secondary-400 dark:bg-secondary-600;
+  }
+}
+
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Responsive popup for EVChargingMap */
+.ev-popup-responsive {
+  /* Ensure horizontal and vertical scroll if popup is wider/taller than container */
+  overflow-x: auto;
+  overflow-y: auto;
+}
+@media (max-width: 767px) {
+  .ev-popup-responsive iframe {
+    max-width: 100vw;
+    min-width: 320px;
+    min-height: 320px;
+    max-height: 80vh;
+  }
+}

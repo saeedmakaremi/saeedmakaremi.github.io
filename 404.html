@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Redirecting...</title>
+    <meta http-equiv="refresh" content="0; url=/urban-data-portfolio/index.html">
+    <script>
+      // GitHub Pages SPA redirect
+      var l = window.location;
+      var path = l.pathname.replace(/^\//, '').replace(/\/urban-data-portfolio\//, '');
+      var newUrl = '/urban-data-portfolio/index.html';
+      if (path) {
+        newUrl += '?redirect=/' + path + l.search + l.hash;
+      }
+      window.location.replace(newUrl);
+    </script>
+  </head>
+  <body>
+    <h1>Redirecting...</h1>
+    <p>If you are not redirected, <a href="/urban-data-portfolio/index.html">click here</a>.</p>
+  </body>
+</html> 
