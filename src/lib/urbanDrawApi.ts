@@ -19,10 +19,52 @@ const HF_SPACE =
   import.meta.env.VITE_HF_SPACE_URL ||
   'https://sdmac-urban-draw-detection.hf.space';
 
-const withTimeout = (milliseconds: number): AbortController => {
+const withTimeout = (milliseconds: number): {
+  controller: AbortController;
+  clear: () => void;
+} => {
   const controller = new AbortController();
-  window.setTimeout(() => controller.abort(), milliseconds);
-  return controller;
+  const timeoutId = window.setTimeout(() => controller.abort(), milliseconds);
+  return {
+    controller,
+    clear: () => window.clearTimeout(timeoutId),
+  };
+};
+
+const wait = (milliseconds: number) =>
+  new Promise<void>((resolve) => window.setTimeout(resolve, milliseconds));
+
+const fetchWithRetry = async (
+  input: RequestInfo | URL,
+  createInit: (signal: AbortSignal) => RequestInit,
+  options: { attempts: number; timeout: number },
+): Promise<Response> => {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= options.attempts; attempt += 1) {
+    const timeout = withTimeout(options.timeout);
+    try {
+      const response = await fetch(
+        input,
+        createInit(timeout.controller.signal),
+      );
+      if (response.ok || response.status < 500 || attempt === options.attempts) {
+        return response;
+      }
+      lastError = new Error(`Temporary service error ${response.status}.`);
+    } catch (error) {
+      lastError = error;
+      if (attempt === options.attempts) throw error;
+    } finally {
+      timeout.clear();
+    }
+
+    await wait(1_500 * attempt);
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error('The remote service could not be reached.');
 };
 
 const asDataUrl = (value: unknown): string | null => {
@@ -111,23 +153,26 @@ const runRoboflow = async (
     reader.readAsDataURL(file);
   });
 
-  const controller = withTimeout(45_000);
-  const response = await fetch(proxyUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    },
-    body: JSON.stringify({
-      inputs: {
-        image: {
-          type: 'base64',
-          value: base64,
-        },
+  const response = await fetchWithRetry(
+    proxyUrl,
+    (signal) => ({
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
       },
+      body: JSON.stringify({
+        inputs: {
+          image: {
+            type: 'base64',
+            value: base64,
+          },
+        },
+      }),
+      signal,
     }),
-    signal: controller.signal,
-  });
+    { attempts: 1, timeout: 75_000 },
+  );
 
   if (!response.ok) {
     throw new Error(`Roboflow returned ${response.status}.`);
@@ -177,14 +222,15 @@ const runHuggingFace = async (
   onStage?: (stage: AnalysisStage) => void,
 ): Promise<UrbanDrawResult> => {
   onStage?.('huggingface-upload');
-  const uploadForm = new FormData();
-  uploadForm.append('files', file, file.name);
-  const uploadController = withTimeout(45_000);
-  const uploadResponse = await fetch(`${HF_SPACE}/gradio_api/upload`, {
-    method: 'POST',
-    body: uploadForm,
-    signal: uploadController.signal,
-  });
+  const uploadResponse = await fetchWithRetry(
+    `${HF_SPACE}/gradio_api/upload`,
+    (signal) => {
+      const uploadForm = new FormData();
+      uploadForm.append('files', file, file.name);
+      return { method: 'POST', body: uploadForm, signal };
+    },
+    { attempts: 2, timeout: 120_000 },
+  );
   if (!uploadResponse.ok) {
     throw new Error('The drawing could not be uploaded to the reserve model.');
   }
@@ -193,10 +239,9 @@ const runHuggingFace = async (
   if (!uploadedPath) throw new Error('The reserve model returned no upload path.');
 
   onStage?.('huggingface-analysis');
-  const startController = withTimeout(30_000);
-  const startResponse = await fetch(
+  const startResponse = await fetchWithRetry(
     `${HF_SPACE}/gradio_api/call/v2/analyze`,
-    {
+    (signal) => ({
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -208,8 +253,9 @@ const runHuggingFace = async (
         },
         confidence: 0.2,
       }),
-      signal: startController.signal,
-    },
+      signal,
+    }),
+    { attempts: 2, timeout: 120_000 },
   );
   if (!startResponse.ok) {
     throw new Error('The reserve analysis could not be started.');
@@ -219,12 +265,38 @@ const runHuggingFace = async (
   };
   if (!eventId) throw new Error('The reserve model returned no event ID.');
 
-  const streamController = withTimeout(300_000);
-  const streamResponse = await fetch(
-    `${HF_SPACE}/gradio_api/call/analyze/${eventId}`,
-    { signal: streamController.signal },
-  );
-  const outputs = await parseSseResult(streamResponse);
+  const streamUrl = `${HF_SPACE}/gradio_api/call/analyze/${eventId}`;
+  const queueDeadline = Date.now() + 8 * 60_000;
+  let outputs: unknown[] | null = null;
+  let streamError: unknown;
+
+  // Gradio queues can briefly disconnect while a free Space wakes or while a
+  // job is waiting. Reconnect to the same event instead of restarting it.
+  for (let attempt = 1; attempt <= 3 && !outputs; attempt += 1) {
+    const remaining = queueDeadline - Date.now();
+    if (remaining <= 0) break;
+    const streamTimeout = withTimeout(Math.min(remaining, 240_000));
+    try {
+      const streamResponse = await fetch(streamUrl, {
+        signal: streamTimeout.controller.signal,
+        headers: { Accept: 'text/event-stream' },
+      });
+      outputs = await parseSseResult(streamResponse);
+    } catch (error) {
+      streamError = error;
+      if (attempt < 3 && Date.now() < queueDeadline) {
+        await wait(2_000 * attempt);
+      }
+    } finally {
+      streamTimeout.clear();
+    }
+  }
+
+  if (!outputs) {
+    throw streamError instanceof Error
+      ? streamError
+      : new Error('The reserve model queue exceeded eight minutes.');
+  }
   const image = outputs[0] as { url?: string; path?: string } | undefined;
   const analysis = (outputs[2] || {}) as Record<string, unknown>;
   const interpretationData = analysis.interpretation as

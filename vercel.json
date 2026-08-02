@@ -1,9 +1,4 @@
 {
-  "functions": {
-    "api/proxy-roboflow.ts": {
-      "runtime": "@vercel/node"
-    }
-  },
   "rewrites": [
     {
       "source": "/api/proxy-roboflow",
@@ -11,4 +6,3 @@
     }
   ]
 }
-
