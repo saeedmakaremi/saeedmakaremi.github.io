@@ -1,0 +1,9 @@
+# Research artifacts are not part of the React/Vercel application.
+requirements.txt
+*.ipynb
+notebooks/
+
+# Local-only and generated files.
+.env*
+dist/
+cloudflare-worker/
