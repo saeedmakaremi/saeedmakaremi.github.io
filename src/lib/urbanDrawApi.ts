@@ -171,7 +171,9 @@ const runRoboflow = async (
       }),
       signal,
     }),
-    { attempts: 1, timeout: 75_000 },
+    // Roboflow remains primary, but do not make visitors wait through a long
+    // upstream outage before the independently hosted reserve takes over.
+    { attempts: 1, timeout: 35_000 },
   );
 
   if (!response.ok) {
