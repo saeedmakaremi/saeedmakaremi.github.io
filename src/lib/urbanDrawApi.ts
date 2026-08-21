@@ -171,9 +171,9 @@ const runRoboflow = async (
       }),
       signal,
     }),
-    // Roboflow remains primary, but do not make visitors wait through a long
-    // upstream outage before the independently hosted reserve takes over.
-    { attempts: 1, timeout: 35_000 },
+    // Roboflow is the preferred workflow and can need nearly two minutes to
+    // wake from a cold start. Allow a buffer before switching to the reserve.
+    { attempts: 1, timeout: 150_000 },
   );
 
   if (!response.ok) {

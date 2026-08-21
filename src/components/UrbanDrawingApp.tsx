@@ -33,7 +33,8 @@ const PROXY_URL =
   import.meta.env.VITE_ROBOFLOW_PROXY_URL || '/api/proxy-roboflow';
 
 const STAGE_COPY: Record<AnalysisStage, string> = {
-  roboflow: 'Running the primary vision workflow…',
+  roboflow:
+    'Running the primary Roboflow workflow. A cold start can take up to two minutes…',
   fallback: 'Primary service unavailable. Switching to the reserve model…',
   'huggingface-upload': 'Preparing the drawing for the reserve model…',
   'huggingface-analysis':
